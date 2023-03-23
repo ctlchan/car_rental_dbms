@@ -1,6 +1,6 @@
 [ssh]
 ssh_address_or_host = hopper.wlu.ca
 ssh_username = t_chan7380
-ssh_password = tempPass9
+ssh_password = temp
 remote_bind_address = hopper.wlu.ca
 remote_port = 3306
