@@ -12,7 +12,7 @@ class GUI:
     window = None
     query = None
     list_frame = None
-    grid_frame = None
+    data_frame = None
     create_frame = None
     table_list = None
     selected = None
@@ -22,7 +22,7 @@ class GUI:
         self.window = tk.Tk()
         self.list_frame = tk.Frame(self.window)
         self.list_frame.pack()
-        self.grid_frame = tk.Frame(self.window)
+        self.data_frame = tk.Frame(self.window)
         self.create_frame = tk.Frame(self.window)
 
         self.query = query
@@ -67,39 +67,69 @@ class GUI:
         """
         # Hide frame containing table list, and show frame containing table data.
         self.list_frame.pack_forget()
-        self.grid_frame.grid()
 
-        back = tk.Button(self.grid_frame, text="Back", command= lambda: self.return_to_list(self.grid_frame, True))
-        back.grid(sticky = "w", row = 0, column=0)
+        # Recreate data_frame to rebuild with data for the selected table.
+        self.data_frame.destroy()
+        self.data_frame = tk.Frame(self.window)
+        self.data_frame.pack()
 
-        for i in self.table_list.curselection():
-            self.selected = self.table_list.get(i)
+        
 
-        print(self.selected)
+        if self.data_frame.children == {}:
 
-        dim = self.query.get_table_size(self.selected)
-        data = self.query.get_table_data(self.selected)
+            upper_frame = tk.Frame(self.data_frame)
+            upper_frame.pack()
 
-        for i in range(len(data[0])):
-            
-            e = tk.Entry(self.grid_frame, width=20, background="grey")
-            e.grid(row=1, column=i)
-            e.insert(-1, data[0][i])
+            back = tk.Button(upper_frame, text="Back", command= lambda: self.return_to_list(self.data_frame))
+            back.grid(sticky="w", row = 0, column= 0)
 
-        data = data[1]
+            tk.Label(upper_frame, text="Search (e.g., year = 2012):").grid(sticky = "e", row =1, column=0)
 
-        for i in range(0, dim[0]):
-            for j in range(dim[1]):
-                cell = str(data[i][j])
-                e = tk.Entry(self.grid_frame, width=20)
-                e.grid(row=i + 2, column=j)
-                e.insert(-1, cell)
+            search = tk.Entry(upper_frame, width=60)
+            search.grid(sticky = "w", row = 1, column=1)
+
+            grid_frame = tk.Frame(self.data_frame)
+            grid_frame.pack()
+
+            for i in self.table_list.curselection():
+                self.selected = self.table_list.get(i)
+
+            print(self.selected)
+
+            dim = self.query.get_table_size(self.selected)
+            data = self.query.get_table_data(self.selected)
+
+            for i in range(len(data[0])):
+                
+                e = tk.Entry(grid_frame, width=20, background="grey")
+                e.grid(row=1, column=i)
+                e.insert(-1, data[0][i])
+
+            data = data[1]
+
+            for i in range(0, dim[0]):
+                for j in range(dim[1]):
+                    cell = str(data[i][j])
+                    e = tk.Entry(grid_frame, width=20)
+                    e.grid(row=i + 2, column=j)
+                    e.insert(-1, cell)
+
+
+            tk.Button(self.data_frame, text="save changes").pack(side='bottom')
+
+    def _search(self, query):
+        """
+        Execute a simple query on a single table.
+        """
+
+
 
 
     def return_to_list(self, frame, isGrid = False):
         """
-        Hide frame and return to list.
+        Hide frame and return to list (reveal it).
         """
+
         if isGrid:
             frame.grid_forget()
         else:
@@ -119,20 +149,16 @@ class GUI:
 
         slct_index = self.table_list.get(0, tk.END).index(self.selected)
         self.table_list.delete(slct_index)
-        
-        # TODO: call delete query!!
+        self.query.delete_table(self.selected)
 
 
-        # for widget in self.frame.winfo_children():
-        #     widget.pack_forget()
-        # self.show_list()
-
-    def _create_table_ui(self):
-        """Create a new table in the database."""
+    def _create_table_ui(self, show = True):
+        """Build the UI components for creating a table."""
         # hide table list
         self.list_frame.pack_forget()
 
         if self.create_frame.children == {}:
+
             tblNameFrame = tk.Frame(self.create_frame)
             tblNameFrame.pack()
 
@@ -157,7 +183,9 @@ class GUI:
             tk.Button(self.create_frame, text="create", command=self._create_table).pack()
 
 
-        self.create_frame.pack()
+        # TODO: reset "new_attribute" fields (i.e., Entry() objects) OR add an option to delete Entry() objects
+        if show:
+            self.create_frame.pack()
 
     def _new_attribute(self):
         """
@@ -170,6 +198,38 @@ class GUI:
         tk.Entry(attributeFrame, width=30).grid(row=rows, column=0)
         tk.Entry(attributeFrame, width=30).grid(row=rows, column=1)
         tk.Entry(attributeFrame, width=30).grid(row=rows, column=2)
+        btn = tk.Button(attributeFrame, text="X", command= lambda: self._del_attribute(btn))
+        btn.grid(row=rows, column=3)
+
+        print(btn.grid_info())
+
+
+
+    def _del_attribute(self, btn):
+        """
+        Helper function. On button press, remove a "new attribute" row when creating a table.
+        """
+        attributeFrame = self.create_frame.children["!frame2"]
+        
+        info = btn.grid_info()
+        row = info["row"]
+
+        start_index = ((row - 1) * 4) + 3  # row will never be 0 because you can't delete the 0th row in the "table"
+        widgets = list(attributeFrame.children.values())
+
+        print(widgets[start_index])
+
+        # TODO: kind of buggy when pressing multiple times: list index out of range
+
+
+        # Destroy all widgets in the given row
+        for i in range(4):
+            # Use start_index like a row pointer in C
+            widgets[start_index + i].destroy()
+
+        
+
+
 
     def _create_table(self):
         """
@@ -206,7 +266,32 @@ class GUI:
 
 
         print(attributes)
-        self.query.create_table(table_name, attributes)
+        try:
+            self.query.create_table(table_name, attributes)
+            print(self.table_list.size())
+            self.table_list.insert(self.table_list.size(), table_name)  # insert at index (n - 1) + 1
+            self._reset_create_frame()  # clear form for later use
+            
+        except Exception as e:
+            print(e)
+
+        self.return_to_list(self.create_frame)
+
+    def _reset_create_frame(self):
+        """
+        Helper function. Reset create_frame upon successful table creation.
+        """
+        print("_reset_create_frame()")
+
+        self.create_frame.destroy()
+        self.create_frame = tk.Frame(self.window)
+
+        # recreate frame without showing it to the screen
+        self._create_table_ui(show=False)
+
+
+
+
 
 
         

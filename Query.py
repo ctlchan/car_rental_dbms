@@ -67,4 +67,12 @@ class Query:
             print(sql)
         sql += ")"
 
-        self.cursor.execute("CREATE TABLE")
+        print(f"final: {sql}")
+
+        self.cursor.execute(sql)
+
+    def filter_table(self, table_name, query: str):
+        """
+        Return the result of executing an SQL simply query (on a single table).
+        """
+        # self.cursor.execute
