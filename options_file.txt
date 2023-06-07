@@ -1,5 +1,5 @@
 [database]
-user = chan7380
-password = cp363_Pass
-host = hopper.wlu.ca
+user = 
+password = 
+host = 
 database = chan7380
